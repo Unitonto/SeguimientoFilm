@@ -6,11 +6,11 @@
   <title>Seguimiento de Film</title>
   <style>
     :root{
-      --bg:#f3f4f6;
+      --bg:#f3f4f6; /* gris claro */
       --card:#ffffff;
       --text:#111827;
       --muted:#6b7280;
-      --accent:#e5e7eb;
+      --accent:#e5e7eb; /* gris bordes */
       --danger:#ef4444;
       --success:#10b981;
       --warning:#f59e0b;
@@ -21,11 +21,14 @@
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{ margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji","Segoe UI Emoji"; background: var(--bg); color: var(--text); display:flex; min-height:100dvh; flex-direction:column }
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: var(--bg); color: var(--text);
+      display:flex; min-height:100dvh; flex-direction:column
+    }
     header{ display:flex; align-items:center; justify-content:space-between; padding: 10px 16px; position:sticky; top:0; z-index:10; backdrop-filter:saturate(1.2) blur(6px) }
-    .logo{ margin-left:auto; display:flex; align-items:center; gap:10px; cursor:pointer }
+    .logo{ margin-left:auto; display:flex; align-items:center; gap:10px }
     .logo img{height:40px; width:auto; object-fit:contain; border-radius:8px; box-shadow:var(--shadow)}
-    .logo .placeholder{height:40px; width:40px; display:grid; place-items:center; background:#e5e7eb; color:#6b7280; border-radius:10px; font-weight:700}
 
     .container{width:min(1100px, 94vw); margin: 0 auto; padding: 8px 0 24px}
 
@@ -81,10 +84,8 @@
 <body>
   <header>
     <div class="muted">Seguimiento de Film</div>
-    <div class="logo" id="logoArea" title="Toca para cargar logo">
-      <div class="placeholder" id="logoPh">L</div>
-      <img id="logo.png" alt="Logo" style="display:none"/>
-      <input id="logoInput" type="file" accept="image/*" style="display:none"/>
+    <div class="logo" id="logoArea">
+      <img id="logoImg" alt="Logo"/>
     </div>
   </header>
 
@@ -171,8 +172,12 @@
      ********************/
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import {
+      getFirestore, doc, getDoc, setDoc, collection, addDoc,
+      query, orderBy, onSnapshot, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+    /* Tu proyecto */
     const firebaseConfig = {
       apiKey: "AIzaSyAMJVaJ4H1sMNMj3-63ZcbA1QhHIyhaY-I",
       authDomain: "seguimientofilm.firebaseapp.com",
@@ -193,7 +198,6 @@
 
     const KEY_STATE = 'film_state_v1';
     const KEY_LOG   = 'film_log_v1';
-    const KEY_LOGO  = 'film_logo_v1';
 
     let state = JSON.parse(localStorage.getItem(KEY_STATE) || '{}');
     let log = JSON.parse(localStorage.getItem(KEY_LOG) || '[]');
@@ -214,7 +218,10 @@
       [...log].reverse().forEach(row=>{
         const tr = document.createElement('tr');
         const td0 = document.createElement('td'); td0.textContent=row.dt; tr.appendChild(td0);
-        const td1 = document.createElement('td'); const pill = document.createElement('span'); pill.className = 'pill ' + (row.type==='IN'?'in': row.type==='OUT'?'out':'count'); pill.textContent = row.type==='IN'? 'Ingreso' : row.type==='OUT' ? 'Salida' : 'Conteo'; td1.appendChild(pill); tr.appendChild(td1);
+        const td1 = document.createElement('td');
+        const pill = document.createElement('span'); pill.className = 'pill ' + (row.type==='IN'?'in': row.type==='OUT'?'out':'count');
+        pill.textContent = row.type==='IN'? 'Ingreso' : row.type==='OUT' ? 'Salida' : 'Conteo';
+        td1.appendChild(pill); tr.appendChild(td1);
         const td2 = document.createElement('td'); td2.className='right'; td2.textContent = (row.type==='OUT'?'-':row.type==='IN'?'+':'=') + row.qty; tr.appendChild(td2);
         const td3 = document.createElement('td'); td3.className='right'; td3.textContent = row.after; tr.appendChild(td3);
         const td4 = document.createElement('td'); td4.textContent = row.note || ''; tr.appendChild(td4);
@@ -230,7 +237,7 @@
       // Calcula: último conteo +/- (ingresos-salidas) posteriores
       let base = null; let idx = -1;
       for(let i=log.length-1; i>=0; i--){ if(log[i].type==='COUNT'){ base = log[i].qty; idx=i; break; } }
-      if(base===null){ return state.stock ?? 0; }
+      if(base===null){ return state.stock ?? 0; } // si nunca hubo conteo, usamos stock actual
       let net = 0;
       for(let j=idx+1; j<log.length; j++){
         const r = log[j]; if(r.type==='IN') net += r.qty; else if(r.type==='OUT') net -= r.qty;
@@ -259,7 +266,6 @@
     const modal = $('#modal'); let modalCb = null;
     function openModal(title, isCount, cb){
       $('#modalTitle').textContent = title;
-      // Para CONTEO: solo 1 campo editable (amount), label = "Conteo" y mostrar fila "Esperado"
       const amountField = $('#fieldCantidad');
       const expectedRow = $('#expectedRow');
       const amountInput = $('#amount');
@@ -288,30 +294,64 @@
     $('#modalCancel').addEventListener('click', ()=> modal.close());
     $('#modalClose').addEventListener('click', ()=> modal.close());
 
-    // Logo uploader
-    const logoInput = $('#logoInput'); const logoImg = $('#logoImg'); const logoPh = $('#logoPh');
-    function loadLogo(){ const data = localStorage.getItem(KEY_LOGO); if(data){ logoImg.src = data; logoImg.style.display=''; logoPh.style.display='none'; } }
-    $('#logoArea').addEventListener('click', ()=> logoInput.click());
-    logoInput.addEventListener('change', (e)=>{ const file = e.target.files?.[0]; if(!file) return; const reader = new FileReader(); reader.onload = ()=>{ localStorage.setItem(KEY_LOGO, reader.result); loadLogo(); }; reader.readAsDataURL(file); });
+    // Logo: cargar directamente logo.png
+    function loadLogo(){
+      const logo = $('#logoImg');
+      logo.src = 'logo.png';
+      logo.style.height = '40px';
+      logo.onerror = () => { logo.style.display='none'; }; // si no existe, ocultar
+    }
 
     // Export CSV
     function exportCSV(){
       const headers = ['fecha_hora','tipo','cantidad','stock','nota'];
-      const rows = log.map(r=>[ r.dt, (r.type==='IN'?'Ingreso': r.type==='OUT'?'Salida':'Conteo'), (r.type==='OUT'?'-':r.type==='IN'?'+':'=')+r.qty, r.after, (r.note||'').replace(/\n/g,' ') ]);
+      const rows = log.map(r=>[
+        r.dt,
+        r.type==='IN'?'Ingreso': r.type==='OUT'?'Salida':'Conteo',
+        (r.type==='OUT'?'-':r.type==='IN'?'+':'=')+r.qty,
+        r.after,
+        (r.note||'').replace(/\n/g,' ')
+      ]);
       const all = [headers, ...rows];
-      const csv = all.map(r=> r.map(cell=>{ const s = String(cell).replace(/\"/g,'""'); return /[",\n;]/.test(s) ? `"${s}"` : s; }).join(';')).join('\n');
+      const csv = all.map(r=> r.map(cell=>{
+        const s = String(cell).replace(/\"/g,'\"\"');
+        return /[\",\n;]/.test(s) ? `"${s}"` : s;
+      }).join(';')).join('\n'); // ; para Excel latino
       const blob = new Blob(["\ufeff"+csv], {type:'text/csv;charset=utf-8;'});
-      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=`film_movimientos_${todayStr()}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href=url; a.download=`film_movimientos_${todayStr()}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
     }
 
-    // Undo (recalcula estado desde log)
-    function undo(){
+    // Undo robusto: movimiento compensatorio (no borra en la nube)
+    function recomputeStateFrom(entries){
+      const s = { stock: 0 };
+      for(const r of entries){
+        if(r.type==='IN') s.stock = (s.stock||0) + r.qty;
+        else if(r.type==='OUT') s.stock = (s.stock||0) - r.qty;
+        else if(r.type==='COUNT'){ s.stock = r.qty; s.lastCountDate = r.dt.slice(0,10); s.lastCountValue = r.qty; }
+      }
+      return s;
+    }
+    function newUndo(){
       if(log.length===0) return;
       const last = log[log.length-1];
       const ok = confirm(`Deshacer última acción: ${last.type} ${last.qty}?`);
       if(!ok) return;
-      log.pop(); state = {stock:0};
-      for(const r of log){ if(r.type==='IN') state.stock = (state.stock||0) + r.qty; else if(r.type==='OUT') state.stock = (state.stock||0) - r.qty; else if(r.type==='COUNT'){ state.stock = r.qty; state.lastCountDate = r.dt.slice(0,10); state.lastCountValue = r.qty; } }
+      const prevEntries = log.slice(0, -1);
+      const prevState = recomputeStateFrom(prevEntries);
+      let comp;
+      if(last.type==='IN'){
+        comp = { dt: nowStr(), type:'OUT', qty:last.qty, after: prevState.stock, note:'(Deshacer última IN)' };
+      } else if(last.type==='OUT'){
+        comp = { dt: nowStr(), type:'IN',  qty:last.qty, after: prevState.stock, note:'(Deshacer última OUT)' };
+      } else { // COUNT
+        comp = { dt: nowStr(), type:'COUNT', qty: prevState.stock, after: prevState.stock, note:'(Deshacer último COUNT)' };
+      }
+      state = prevState;
+      log.push(comp);
       save();
     }
 
@@ -320,7 +360,8 @@
     $('#btnOut').addEventListener('click', ()=> doInOut('OUT'));
     $('#btnCount').addEventListener('click', doCount);
     $('#btnExport').addEventListener('click', exportCSV);
-    $('#btnUndo').addEventListener('click', undo);
+    // Forzamos nuestro undo robusto
+    document.getElementById('btnUndo')?.addEventListener('click', (e)=>{ e.preventDefault(); newUndo(); });
     $('#btnResetDay').addEventListener('click', ()=>{ delete state.lastCountDate; delete state.lastCountValue; save(); });
 
     /********************
@@ -337,39 +378,75 @@
         await signInAnonymously(auth);
         window.__db = db;
         return true;
-      }catch(e){ console.warn('Auth init error (modo local)', e); setAlert('warning', '⚠️ Trabajando en modo local. (Revisá Auth anónima y dominios autorizados)'); return false; }
+      }catch(e){
+        console.warn('Auth init error (modo local)', e);
+        setAlert('warning', '⚠️ Trabajando en modo local. (Revisá Auth anónima y dominios autorizados)');
+        return false;
+      }
     }
 
     const DOC_STATE = ()=> doc(window.__db, 'film_app', 'global');
     const COL_LOG   = ()=> collection(window.__db, 'film_app', 'global', 'log');
 
     async function loadCloudOnce(){
-      try{ const snap = await getDoc(DOC_STATE()); if(snap.exists()){ const cloud = snap.data(); state = { ...state, ...cloud }; localStorage.setItem(KEY_STATE, JSON.stringify(state)); } }
-      catch(e){ console.warn('loadCloudOnce', e); }
+      try{
+        const snap = await getDoc(DOC_STATE());
+        if(snap.exists()){
+          const cloud = snap.data();
+          state = { ...state, ...cloud };
+          localStorage.setItem(KEY_STATE, JSON.stringify(state));
+        }
+      }catch(e){ console.warn('loadCloudOnce', e); }
       render();
     }
 
     function subscribeLogRealtime(){
       const q = query(COL_LOG(), orderBy('ts','desc'));
       onSnapshot(q, (ss)=>{
-        const rows = []; ss.forEach(d=>{ const x=d.data(); rows.push({ dt:x.dt, type:x.type, qty:x.qty, after:x.after, note:x.note||'' }); });
-        log = rows.slice().reverse(); localStorage.setItem(KEY_LOG, JSON.stringify(log)); render();
+        const rows = [];
+        ss.forEach(d=>{
+          const x=d.data();
+          rows.push({ dt:x.dt, type:x.type, qty:x.qty, after:x.after, note:x.note||'' });
+        });
+        log = rows.slice().reverse();
+        localStorage.setItem(KEY_LOG, JSON.stringify(log));
+        render();
       });
     }
 
     async function saveCloud(optionalLast){
       try{
-        await setDoc(DOC_STATE(), { stock: state.stock ?? 0, lastCountDate: state.lastCountDate || null, lastCountValue: state.lastCountValue ?? null, updatedAt: serverTimestamp() }, { merge:true });
-        if(optionalLast){ await addDoc(COL_LOG(), { dt: optionalLast.dt, type: optionalLast.type, qty: optionalLast.qty, after: optionalLast.after, note: optionalLast.note || '', ts: serverTimestamp() }); }
+        await setDoc(DOC_STATE(), {
+          stock: state.stock ?? 0,
+          lastCountDate: state.lastCountDate || null,
+          lastCountValue: state.lastCountValue ?? null,
+          updatedAt: serverTimestamp()
+        }, { merge:true });
+        if(optionalLast){
+          await addDoc(COL_LOG(), {
+            dt: optionalLast.dt,
+            type: optionalLast.type,
+            qty: optionalLast.qty,
+            after: optionalLast.after,
+            note: optionalLast.note || '',
+            ts: serverTimestamp()
+          });
+        }
       }catch(e){ console.error('saveCloud', e); }
     }
 
+    // Init
     (async function start(){
-      if(state.stock == null) state.stock = 0; loadLogo(); render();
+      // Logo
+      loadLogo();
+      // Estado base
+      if(state.stock == null) state.stock = 0; render();
+      // Firebase
       const ok = await ensureFirebase();
       if(ok){ await loadCloudOnce(); subscribeLogRealtime(); setAlert('ok', '✅ Conectado a Firebase.'); }
     })();
   </script>
 </body>
 </html>
+
 
